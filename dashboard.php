@@ -234,6 +234,10 @@ if (!$databaseError) {
 
 $flash = pull_flash();
 $hasOldInput = !empty($_SESSION['old_input']);
+$oldChannel = (string) ($_SESSION['old_input']['channel'] ?? '');
+$oldChannelSource = $oldChannel === ''
+    ? ''
+    : (in_array($oldChannel, APPLICATION_CHANNELS, true) ? $oldChannel : '__other__');
 ?>
 <!doctype html>
 <html lang="id">
@@ -647,11 +651,23 @@ $hasOldInput = !empty($_SESSION['old_input']);
                     <span>Posisi yang Dilamar <b>*</b></span>
                     <input type="text" name="position" id="position" maxlength="150" value="<?= old_input('position') ?>" placeholder="Contoh: UI/UX Designer" required>
                 </label>
-                <label class="field">
+                <div class="field">
                     <span>Melalui <b>*</b></span>
-                    <input type="text" name="channel" id="channel" maxlength="100" value="<?= old_input('channel') ?>" placeholder="LinkedIn, JobStreet, Email..." list="channelOptions" required>
-                    <datalist id="channelOptions"><option value="LinkedIn"><option value="JobStreet"><option value="Glints"><option value="Kalibrr"><option value="Website Perusahaan"><option value="Email"><option value="Referensi"></datalist>
-                </label>
+                    <select name="channel_source" id="channelSource" required aria-describedby="channelHelp">
+                        <option value="" disabled <?= $oldChannelSource === '' ? 'selected' : '' ?>>Pilih sumber lamaran</option>
+                        <?php foreach (APPLICATION_CHANNELS as $channelOption): ?>
+                            <option value="<?= e($channelOption) ?>" <?= $oldChannelSource === $channelOption ? 'selected' : '' ?>><?= e($channelOption) ?></option>
+                        <?php endforeach; ?>
+                        <option value="__other__" <?= $oldChannelSource === '__other__' ? 'selected' : '' ?>>Lainnya</option>
+                    </select>
+                    <small class="field-help" id="channelHelp">Pilih Lainnya jika sumber belum tersedia.</small>
+                    <label class="channel-custom <?= $oldChannelSource === '__other__' ? 'visible' : '' ?>" id="channelCustomField">
+                        <span>Tulis sumber lainnya <b>*</b></span>
+                        <input type="text" name="channel_custom" id="channelCustom" maxlength="100"
+                               value="<?= $oldChannelSource === '__other__' ? e($oldChannel) : '' ?>"
+                               placeholder="Contoh: Instagram" <?= $oldChannelSource === '__other__' ? 'required' : 'disabled' ?>>
+                    </label>
+                </div>
                 <label class="field">
                     <span>Tahapan Rekrutmen</span>
                     <select name="status" id="applicationStatus">

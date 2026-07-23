@@ -4,6 +4,41 @@ const modalTitle = document.querySelector('#modalTitle');
 const formAction = document.querySelector('#formAction');
 const applicationId = document.querySelector('#applicationId');
 const submitButton = document.querySelector('#submitButton');
+const channelSource = document.querySelector('#channelSource');
+const channelCustomField = document.querySelector('#channelCustomField');
+const channelCustom = document.querySelector('#channelCustom');
+
+function setChannelValue(value = '') {
+    if (!channelSource || !channelCustomField || !channelCustom) return;
+
+    const normalizedValue = String(value ?? '').trim();
+    const presetExists = [...channelSource.options].some(option => (
+        option.value !== '' &&
+        option.value !== '__other__' &&
+        option.value === normalizedValue
+    ));
+    const useCustom = normalizedValue !== '' && !presetExists;
+
+    channelSource.value = useCustom ? '__other__' : normalizedValue;
+    channelCustom.value = useCustom ? normalizedValue : '';
+    channelCustomField.classList.toggle('visible', useCustom);
+    channelCustom.disabled = !useCustom;
+    channelCustom.required = useCustom;
+}
+
+function updateChannelInput() {
+    if (!channelSource || !channelCustomField || !channelCustom) return;
+
+    const useCustom = channelSource.value === '__other__';
+    channelCustomField.classList.toggle('visible', useCustom);
+    channelCustom.disabled = !useCustom;
+    channelCustom.required = useCustom;
+    if (!useCustom) {
+        channelCustom.value = '';
+    } else {
+        requestAnimationFrame(() => channelCustom.focus());
+    }
+}
 
 function toDatetimeLocal(value) {
     return value ? String(value).slice(0, 16).replace(' ', 'T') : '';
@@ -50,6 +85,7 @@ function openModal(application = null) {
     if (!applicationModal || !applicationForm) return;
 
     applicationForm.reset();
+    setChannelValue('');
     formAction.value = application ? 'update' : 'create';
     applicationId.value = application?.id ?? '';
     modalTitle.textContent = application ? 'Edit Riwayat Lamaran' : 'Catat Lamaran Baru';
@@ -62,7 +98,7 @@ function openModal(application = null) {
     if (application) {
         document.querySelector('#company').value = application.company ?? '';
         document.querySelector('#position').value = application.position ?? '';
-        document.querySelector('#channel').value = application.channel ?? '';
+        setChannelValue(application.channel ?? '');
         document.querySelector('#applicationStatus').value = application.status ?? 'Terkirim';
         document.querySelector('#applicationPriority').value = application.priority ?? 'Sedang';
         document.querySelector('#notes').value = application.notes ?? '';
@@ -86,6 +122,12 @@ function closeModal() {
 document.querySelectorAll('[data-open-modal]').forEach(button => {
     button.addEventListener('click', () => openModal());
 });
+channelSource?.addEventListener('change', updateChannelInput);
+if (channelSource?.value === '__other__') {
+    setChannelValue(channelCustom?.value || '');
+} else {
+    updateChannelInput();
+}
 document.querySelectorAll('[data-close-modal]').forEach(button => button.addEventListener('click', closeModal));
 applicationModal?.addEventListener('click', event => {
     if (event.target === applicationModal) closeModal();

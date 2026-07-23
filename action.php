@@ -47,7 +47,9 @@ if (!in_array($action, ['create', 'update'], true)) {
 
 $company = trim((string) ($_POST['company'] ?? ''));
 $position = trim((string) ($_POST['position'] ?? ''));
-$channel = trim((string) ($_POST['channel'] ?? ''));
+$channelSource = trim((string) ($_POST['channel_source'] ?? ''));
+$channelCustom = trim((string) ($_POST['channel_custom'] ?? ''));
+$channel = $channelSource === '__other__' ? $channelCustom : $channelSource;
 $status = trim((string) ($_POST['status'] ?? 'Terkirim'));
 $priority = trim((string) ($_POST['priority'] ?? 'Sedang'));
 $notes = trim((string) ($_POST['notes'] ?? ''));
@@ -69,6 +71,9 @@ if ($company === '' || mb_strlen($company) > 150) {
 }
 if ($position === '' || mb_strlen($position) > 150) {
     $errors[] = 'Posisi yang dilamar wajib diisi (maksimal 150 karakter).';
+}
+if ($channelSource !== '__other__' && !in_array($channelSource, APPLICATION_CHANNELS, true)) {
+    $errors[] = 'Pilih media lamaran dari daftar yang tersedia.';
 }
 if ($channel === '' || mb_strlen($channel) > 100) {
     $errors[] = 'Media lamaran wajib diisi (maksimal 100 karakter).';

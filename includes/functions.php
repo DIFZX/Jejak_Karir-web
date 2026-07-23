@@ -6,6 +6,17 @@ const APPLICATION_STATUSES = [
     'Interview', 'Offering', 'Ditolak', 'Diterima',
 ];
 const APPLICATION_PRIORITIES = ['Tinggi', 'Sedang', 'Rendah'];
+const APPLICATION_CHANNELS = [
+    'LinkedIn',
+    'JobStreet',
+    'Glints',
+    'Kalibrr',
+    'Loker.id',
+    'Loker Nusantara',
+    'Website Perusahaan',
+    'Email',
+    'Referensi',
+];
 
 function e(?string $value): string
 {

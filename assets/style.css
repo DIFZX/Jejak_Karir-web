@@ -25,6 +25,7 @@ body {
 }
 body.modal-open { overflow: hidden; }
 button, input, select, textarea { font: inherit; }
+button { margin: 0; line-height: 1.2; vertical-align: middle; }
 button, a { -webkit-tap-highlight-color: transparent; }
 svg { fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 
@@ -261,7 +262,7 @@ footer p { margin: 0; color: #9aa3b1; font-size: 9px; }
 .modal h2 { font: 800 21px "Manrope", sans-serif; margin: 4px 0 0; }
 .modal-close { width: 40px; height: 40px; flex: 0 0 40px; display: grid; place-items: center; padding: 0; color: #7b8798; background: #f3f5f8; border: 1px solid transparent; border-radius: 11px; cursor: pointer; transition: .18s ease; }
 .modal-close svg { width: 18px; height: 18px; stroke-width: 2.2; }
-.modal-close:hover { color: var(--coral); background: #fff0ee; border-color: #ffd7d2; transform: rotate(3deg); }
+.modal-close:hover { color: var(--coral); background: #fff0ee; border-color: #ffd7d2; }
 .modal-close:focus-visible { outline: 3px solid rgba(255,111,97,.18); outline-offset: 2px; }
 .modal form { padding: 22px 27px 25px; }
 .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
@@ -270,8 +271,23 @@ footer p { margin: 0; color: #9aa3b1; font-size: 9px; }
 .field > span { color: #455167; font-size: 11px; font-weight: 700; }.field b { color: var(--coral); }.field small { color: #9da5b1; font-weight: 400; }
 .field input, .field textarea, .field select { width: 100%; border: 1px solid #dfe3e9; border-radius: 8px; outline: 0; color: var(--ink); background: white; font-size: 12px; transition: .2s; }
 .field input { height: 42px; padding: 0 12px; }.field textarea { resize: vertical; padding: 11px 12px; line-height: 1.5; }
-.field select { height: 42px; font-size: 12px; }
+.field select {
+    height: 42px;
+    padding: 0 38px 0 12px;
+    font-size: 12px;
+    cursor: pointer;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23738096' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 13px center;
+    background-size: 16px;
+}
 .field input:focus, .field textarea:focus, .field select:focus { border-color: var(--coral); box-shadow: 0 0 0 3px rgba(255,111,97,.1); }
+.field-help { display: block; margin-top: -1px; line-height: 1.4; }
+.channel-custom { display: none; flex-direction: column; gap: 7px; margin-top: 4px; }
+.channel-custom.visible { display: flex; }
+.channel-custom > span { color: #455167; font-size: 11px; font-weight: 700; }
+.channel-custom b { color: var(--coral); }
 .auto-time { color: #7d8796; background: #f7f8fa; padding: 10px 12px; border-radius: 8px; font-size: 10px; margin-top: 16px; display: flex; align-items: center; gap: 7px; }
 .auto-time svg { width: 15px; color: var(--coral); }
 .form-section-title { display: flex; align-items: center; gap: 10px; margin: 3px 0 -2px; }.form-section-title span { color: #8b95a4; text-transform: uppercase; letter-spacing: .8px; font-size: 8px; font-weight: 800; white-space: nowrap; }.form-section-title i { display: block; height: 1px; background: var(--line); width: 100%; }
@@ -468,7 +484,9 @@ footer p { font-size: 11px; }
     .stats-grid { grid-template-columns: 1fr 1fr; gap: 9px; }.stat-card { min-height: 100px; padding: 14px 12px; grid-template-columns: 37px 1fr; gap: 9px; }
     .stat-icon { width: 37px; height: 37px; }.stat-card strong { font-size: 21px; }
     .panel-head { padding: 18px; }.filters { flex-wrap: wrap; }.search-box { flex-basis: 100%; width: 100%; }.filters select { flex: 1; }
-    .form-grid { grid-template-columns: 1fr; }.field.full { grid-column: auto; }.schedule-fields { grid-template-columns: 1fr; }.schedule-fields .field.full, .schedule-fields .form-section-title { grid-column: auto; }.modal-head, .modal form { padding-left: 20px; padding-right: 20px; }
+    .form-grid { grid-template-columns: minmax(0, 1fr); }.field.full { grid-column: auto; }.schedule-fields { grid-template-columns: minmax(0, 1fr); }.schedule-fields .field.full, .schedule-fields .form-section-title { grid-column: auto; }.modal-head, .modal form { padding-left: 20px; padding-right: 20px; }
+    .field, .field input, .field select, .field textarea { min-width: 0; }
+    .modal-actions { align-items: stretch; }.modal-actions .btn { min-width: 0; min-height: 46px; }
     .login-shell { display: block; }.login-story { min-height: 215px; padding: 25px 24px; }.story-content { padding: 35px 0 12px; }.story-content h1 { font-size: 29px; margin-bottom: 10px; }.story-content > p, .story-points, .story-footer { display: none; }.login-form-side { min-height: calc(100vh - 215px); padding: 35px 24px; display: block; }.login-card { margin: 0 auto; }.login-icon { display: none; }
     .reminder-list { grid-template-columns: 1fr; }.analytics-grid { grid-template-columns: 1fr; }.chart-card { min-height: 200px; }
     .theme-toggle, .account-button { width: 39px; height: 39px; flex-basis: 39px; }.export-csv { display: none; }
@@ -478,4 +496,14 @@ footer p { font-size: 11px; }
     .transaction-title { align-items: flex-start; }.transaction-title time { font-size: 7px; }.chart-head { gap: 8px; }.chart-actions { align-items: flex-end; flex-direction: column-reverse; }.chart-actions > span { display: none; }
     .export-scope-options { grid-template-columns: 1fr; }.export-actions { flex-wrap: wrap; }.export-actions .btn-cancel { flex: 1 0 100%; }.export-actions .btn-pdf, .export-actions .btn-csv { flex: 1; }
     .notification-button { width: 39px; height: 39px; }.notification-dropdown { position: fixed; top: 73px; left: 14px; right: 14px; width: auto; transform-origin: top center; }
+}
+@media (max-width: 420px) {
+    .modal-backdrop, .confirm-backdrop { padding: 0; place-items: end center; }
+    .modal { width: 100%; max-height: calc(100dvh - 10px); border-radius: 18px 18px 0 0; }
+    .modal-actions { display: grid; grid-template-columns: 1fr 1fr; }
+    .modal-actions .btn { width: 100%; padding-inline: 12px; }
+    .confirm-backdrop { padding: 14px; place-items: center; }
+}
+@media (hover: none) {
+    .btn:hover, .modal-close:hover, .icon-button:hover { transform: none; }
 }
