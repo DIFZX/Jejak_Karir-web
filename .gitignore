@@ -1,0 +1,20 @@
+# Local environment and generated files
+.env
+.env.*
+!.env.example
+
+# Dependencies and editor settings
+/vendor/
+/node_modules/
+/.idea/
+/.vscode/
+
+# Runtime files
+*.log
+*.tmp
+*.cache
+.DS_Store
+Thumbs.db
+
+# Local audit artifacts
+landing-audit*.png
