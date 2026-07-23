@@ -30,7 +30,7 @@ $flash = pull_flash();
         document.documentElement.dataset.theme = 'dark';
     }
     </script>
-    <link rel="stylesheet" href="assets/style.css">
+    <link rel="stylesheet" href="<?= e(asset_url('assets/style.css')) ?>">
 </head>
 <body>
 <header class="topbar">
@@ -107,6 +107,6 @@ $flash = pull_flash();
         </div>
     </section>
 </main>
-<script src="assets/app.js"></script>
+<script src="<?= e(asset_url('assets/app.js')) ?>"></script>
 </body>
 </html>

@@ -20,7 +20,7 @@ $primaryLabel = $loggedIn ? 'Buka Dashboard' : 'Mulai Sekarang';
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="assets/landing.css">
+    <link rel="stylesheet" href="<?= e(asset_url('assets/landing.css')) ?>">
 </head>
 <body>
 <header class="landing-header" data-header>
@@ -315,6 +315,6 @@ $primaryLabel = $loggedIn ? 'Buka Dashboard' : 'Mulai Sekarang';
     <div class="landing-shell footer-bottom"><span>© <?= date('Y') ?> JejakKarier. Seluruh hak dilindungi.</span><span>Dibuat untuk perjalanan karier yang lebih baik.</span></div>
 </footer>
 
-<script src="assets/landing.js"></script>
+<script src="<?= e(asset_url('assets/landing.js')) ?>"></script>
 </body>
 </html>

@@ -23,6 +23,20 @@ function e(?string $value): string
     return htmlspecialchars($value ?? '', ENT_QUOTES, 'UTF-8');
 }
 
+function asset_url(string $path): string
+{
+    $normalizedPath = ltrim(str_replace('\\', '/', $path), '/');
+    $version = trim((string) getenv('VERCEL_GIT_COMMIT_SHA'));
+
+    if ($version === '') {
+        $absolutePath = dirname(__DIR__) . DIRECTORY_SEPARATOR .
+            str_replace('/', DIRECTORY_SEPARATOR, $normalizedPath);
+        $version = is_file($absolutePath) ? (string) filemtime($absolutePath) : '';
+    }
+
+    return $normalizedPath . ($version !== '' ? '?v=' . rawurlencode(substr($version, 0, 12)) : '');
+}
+
 function csrf_token(): string
 {
     if (empty($_SESSION['csrf_token'])) {

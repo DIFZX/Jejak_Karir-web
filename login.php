@@ -66,7 +66,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         document.documentElement.dataset.theme = 'dark';
     }
     </script>
-    <link rel="stylesheet" href="assets/style.css">
+    <link rel="stylesheet" href="<?= e(asset_url('assets/style.css')) ?>">
 </head>
 <body class="login-page">
 <main class="login-shell">

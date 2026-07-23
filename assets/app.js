@@ -12,7 +12,7 @@ function setChannelValue(value = '') {
     if (!channelSource || !channelCustomField || !channelCustom) return;
 
     const normalizedValue = String(value ?? '').trim();
-    const presetExists = [...channelSource.options].some(option => (
+    const presetExists = Array.prototype.some.call(channelSource.options, option => (
         option.value !== '' &&
         option.value !== '__other__' &&
         option.value === normalizedValue
@@ -36,7 +36,12 @@ function updateChannelInput() {
     if (!useCustom) {
         channelCustom.value = '';
     } else {
-        requestAnimationFrame(() => channelCustom.focus());
+        const focusCustomInput = () => channelCustom.focus();
+        if (typeof window.requestAnimationFrame === 'function') {
+            window.requestAnimationFrame(focusCustomInput);
+        } else {
+            window.setTimeout(focusCustomInput, 0);
+        }
     }
 }
 
@@ -50,8 +55,8 @@ function renderStatusHistory(history) {
     if (!container || !timeline) return;
 
     container.classList.toggle('visible', Array.isArray(history) && history.length > 0);
-    timeline.replaceChildren();
-    (history || []).forEach((item, index) => {
+    timeline.textContent = '';
+    (history || []).forEach(item => {
         const row = document.createElement('div');
         row.className = 'timeline-item';
         const marker = document.createElement('i');
@@ -60,12 +65,26 @@ function renderStatusHistory(history) {
         const date = document.createElement('small');
         status.textContent = item.status;
         const parsedDate = new Date(String(item.changed_at).replace(' ', 'T'));
-        date.textContent = Number.isNaN(parsedDate.getTime())
-            ? item.changed_at
-            : parsedDate.toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' });
-        content.append(status, date);
-        row.append(marker, content);
-        timeline.append(row);
+        if (Number.isNaN(parsedDate.getTime())) {
+            date.textContent = item.changed_at;
+        } else {
+            try {
+                date.textContent = parsedDate.toLocaleString('id-ID', {
+                    year: 'numeric',
+                    month: 'short',
+                    day: '2-digit',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                });
+            } catch {
+                date.textContent = parsedDate.toISOString().slice(0, 16).replace('T', ' ');
+            }
+        }
+        content.appendChild(status);
+        content.appendChild(date);
+        row.appendChild(marker);
+        row.appendChild(content);
+        timeline.appendChild(row);
     });
 }
 
@@ -135,10 +154,20 @@ applicationModal?.addEventListener('click', event => {
 
 document.querySelectorAll('.edit-button').forEach(button => {
     button.addEventListener('click', () => {
+        let application;
         try {
-            openModal(JSON.parse(button.dataset.application));
-        } catch {
+            application = JSON.parse(button.dataset.application || '');
+        } catch (error) {
+            console.error('Data lamaran tidak valid:', error);
             window.alert('Data tidak dapat dibuka.');
+            return;
+        }
+
+        try {
+            openModal(application);
+        } catch (error) {
+            console.error('Form edit gagal dibuka:', error);
+            window.alert('Form edit gagal dibuka. Muat ulang halaman lalu coba lagi.');
         }
     });
 });

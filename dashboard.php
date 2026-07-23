@@ -255,7 +255,7 @@ $oldChannelSource = $oldChannel === ''
         document.documentElement.dataset.theme = 'dark';
     }
     </script>
-    <link rel="stylesheet" href="assets/style.css">
+    <link rel="stylesheet" href="<?= e(asset_url('assets/style.css')) ?>">
 </head>
 <body>
 <div class="ambient ambient-one"></div>
@@ -781,6 +781,6 @@ $oldChannelSource = $oldChannel === ''
 </div>
 
 <?php unset($_SESSION['old_input']); ?>
-<script src="assets/app.js"></script>
+<script src="<?= e(asset_url('assets/app.js')) ?>"></script>
 </body>
 </html>
