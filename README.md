@@ -53,6 +53,18 @@ IncludeOptional "C:/xampp/htdocs/web lamar kerja/apache/jejak-karier-php81.conf"
 
 Validasi konfigurasi dengan `httpd.exe -t`, lalu restart Apache.
 
+## Deploy ke Vercel
+
+Konfigurasi Vercel tersedia melalui:
+
+- `vercel.json` untuk PHP Community Runtime, routing, region, dan security header
+- `api/index.php` sebagai router seluruh halaman aplikasi
+- `includes/session.php` untuk session login berbasis database
+- `.vercelignore` untuk mencegah file lokal dan pengembangan ikut diunggah
+
+Panduan impor GitHub, Environment Variables, dan verifikasi deployment tersedia
+di `DEPLOY_VERCEL.md`.
+
 Rute utama:
 
 - `/` — landing page publik

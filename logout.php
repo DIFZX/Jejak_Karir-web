@@ -1,7 +1,9 @@
 <?php
 declare(strict_types=1);
 
-session_start();
+require_once __DIR__ . '/config/database.php';
+require_once __DIR__ . '/includes/session.php';
+start_application_session();
 $_SESSION = [];
 
 if (ini_get('session.use_cookies')) {

@@ -20,3 +20,4 @@ Thumbs.db
 landing-audit*.png
 /backups/
 /.runtime/
+/.vercel/

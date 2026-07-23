@@ -35,6 +35,12 @@ CREATE TABLE IF NOT EXISTS public.application_status_history (
     changed_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
+CREATE TABLE IF NOT EXISTS public.app_sessions (
+    id VARCHAR(128) PRIMARY KEY,
+    data TEXT NOT NULL,
+    last_activity BIGINT NOT NULL
+);
+
 CREATE INDEX IF NOT EXISTS idx_applications_user_id ON public.applications(user_id);
 CREATE INDEX IF NOT EXISTS idx_applications_company ON public.applications(company);
 CREATE INDEX IF NOT EXISTS idx_applications_status ON public.applications(status);
@@ -42,6 +48,7 @@ CREATE INDEX IF NOT EXISTS idx_applications_priority ON public.applications(prio
 CREATE INDEX IF NOT EXISTS idx_applications_applied_at ON public.applications(applied_at);
 CREATE INDEX IF NOT EXISTS idx_history_application ON public.application_status_history(application_id);
 CREATE INDEX IF NOT EXISTS idx_history_changed_at ON public.application_status_history(changed_at);
+CREATE INDEX IF NOT EXISTS idx_sessions_last_activity ON public.app_sessions(last_activity);
 
 CREATE OR REPLACE FUNCTION public.set_application_updated_at()
 RETURNS TRIGGER AS $$
@@ -59,3 +66,4 @@ FOR EACH ROW EXECUTE FUNCTION public.set_application_updated_at();
 ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.applications ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.application_status_history ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.app_sessions ENABLE ROW LEVEL SECURITY;

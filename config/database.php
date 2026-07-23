@@ -42,6 +42,12 @@ function environment_value(string $key, string $default = ''): string
     return $value === false ? $default : (string) $value;
 }
 
+function environment_flag(string $key, bool $default = false): bool
+{
+    $value = strtolower(environment_value($key, $default ? 'true' : 'false'));
+    return in_array($value, ['1', 'true', 'yes', 'on'], true);
+}
+
 load_environment_file(dirname(__DIR__) . '/.env');
 date_default_timezone_set(environment_value('APP_TIMEZONE', 'Asia/Jakarta'));
 
@@ -115,6 +121,13 @@ function initialize_postgres_schema(PDO $pdo): void
             changed_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
         )"
     );
+    $pdo->exec(
+        "CREATE TABLE IF NOT EXISTS public.app_sessions (
+            id VARCHAR(128) PRIMARY KEY,
+            data TEXT NOT NULL,
+            last_activity BIGINT NOT NULL
+        )"
+    );
     $pdo->exec('CREATE INDEX IF NOT EXISTS idx_applications_user_id ON public.applications(user_id)');
     $pdo->exec('CREATE INDEX IF NOT EXISTS idx_applications_company ON public.applications(company)');
     $pdo->exec('CREATE INDEX IF NOT EXISTS idx_applications_status ON public.applications(status)');
@@ -122,6 +135,7 @@ function initialize_postgres_schema(PDO $pdo): void
     $pdo->exec('CREATE INDEX IF NOT EXISTS idx_applications_applied_at ON public.applications(applied_at)');
     $pdo->exec('CREATE INDEX IF NOT EXISTS idx_history_application ON public.application_status_history(application_id)');
     $pdo->exec('CREATE INDEX IF NOT EXISTS idx_history_changed_at ON public.application_status_history(changed_at)');
+    $pdo->exec('CREATE INDEX IF NOT EXISTS idx_sessions_last_activity ON public.app_sessions(last_activity)');
 
     $pdo->exec(
         "CREATE OR REPLACE FUNCTION public.set_application_updated_at()
@@ -142,6 +156,7 @@ function initialize_postgres_schema(PDO $pdo): void
     $pdo->exec('ALTER TABLE public.users ENABLE ROW LEVEL SECURITY');
     $pdo->exec('ALTER TABLE public.applications ENABLE ROW LEVEL SECURITY');
     $pdo->exec('ALTER TABLE public.application_status_history ENABLE ROW LEVEL SECURITY');
+    $pdo->exec('ALTER TABLE public.app_sessions ENABLE ROW LEVEL SECURITY');
 
     $initialUsername = environment_value('INITIAL_USERNAME');
     $initialPassword = environment_value('INITIAL_PASSWORD');
@@ -180,10 +195,17 @@ function database(): PDO
         try {
             $pdo = connect_to_postgres($databaseUrl, $options);
             $pdo->exec("SET TIME ZONE 'Asia/Jakarta'");
-            initialize_postgres_schema($pdo);
+            if (environment_flag('DB_AUTO_MIGRATE')) {
+                initialize_postgres_schema($pdo);
+            }
             return $pdo;
         } catch (PDOException $exception) {
-            throw new RuntimeException('Database Supabase tidak dapat dihubungkan: ' . $exception->getMessage());
+            error_log('Supabase database error: ' . $exception->getMessage());
+            $message = 'Database Supabase tidak dapat dihubungkan.';
+            if (environment_flag('APP_DEBUG')) {
+                $message .= ' Detail: ' . $exception->getMessage();
+            }
+            throw new RuntimeException($message);
         }
     }
 
@@ -205,9 +227,10 @@ function database(): PDO
             '` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci'
         );
     } catch (PDOException $exception) {
+        error_log('MySQL database error: ' . $exception->getMessage());
+        $details = environment_flag('APP_DEBUG') ? ' Detail: ' . $exception->getMessage() : '';
         throw new RuntimeException(
-            'Database tidak dapat dihubungkan. Pastikan MySQL di XAMPP sudah aktif. Detail: ' .
-            $exception->getMessage()
+            'Database tidak dapat dihubungkan. Pastikan MySQL di XAMPP sudah aktif.' . $details
         );
     }
 
@@ -314,6 +337,14 @@ function database(): PDO
             changed_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
             INDEX idx_history_application (application_id),
             INDEX idx_history_changed_at (changed_at)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci"
+    );
+    $pdo->exec(
+        "CREATE TABLE IF NOT EXISTS app_sessions (
+            id VARCHAR(128) PRIMARY KEY,
+            data MEDIUMTEXT NOT NULL,
+            last_activity BIGINT UNSIGNED NOT NULL,
+            INDEX idx_sessions_last_activity (last_activity)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci"
     );
     $pdo->exec(

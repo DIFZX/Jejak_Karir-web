@@ -1,0 +1,15 @@
+.env
+.env.*
+.git
+.github
+.agents
+.codex
+.runtime
+.vercel
+apache
+backups
+scripts
+*.sql
+*.log
+.htaccess
+*.md
