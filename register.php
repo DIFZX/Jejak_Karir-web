@@ -27,10 +27,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $error = 'Konfirmasi password tidak sama.';
     } else {
         try {
-            $statement = database()->prepare('INSERT INTO users (username, password) VALUES (?, ?)');
+            $pdo = database();
+            $insertSql = 'INSERT INTO users (username, password) VALUES (?, ?)';
+            if (is_postgres_database()) {
+                $insertSql .= ' RETURNING id';
+            }
+            $statement = $pdo->prepare($insertSql);
             $statement->execute([$username, password_hash($password, PASSWORD_DEFAULT)]);
+            $newUserId = is_postgres_database()
+                ? (int) $statement->fetchColumn()
+                : (int) $pdo->lastInsertId();
             session_regenerate_id(true);
-            $_SESSION['user_id'] = (int) database()->lastInsertId();
+            $_SESSION['user_id'] = $newUserId;
             $_SESSION['username'] = $username;
             unset($_SESSION['csrf_token']);
             header('Location: dashboard.php');

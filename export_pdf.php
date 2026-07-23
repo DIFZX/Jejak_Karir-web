@@ -10,11 +10,13 @@ $search = trim((string) ($_GET['q'] ?? ''));
 $status = trim((string) ($_GET['status'] ?? ''));
 $priority = trim((string) ($_GET['priority'] ?? ''));
 $dateFilter = trim((string) ($_GET['applied_date'] ?? ''));
+$postgres = is_postgres_database();
 $conditions = ['user_id = :user_id'];
 $parameters = ['user_id' => (int) $_SESSION['user_id']];
 
 if ($search !== '') {
-    $conditions[] = '(company LIKE :search_company OR position LIKE :search_position OR channel LIKE :search_channel OR notes LIKE :search_notes)';
+    $likeOperator = $postgres ? 'ILIKE' : 'LIKE';
+    $conditions[] = "(company $likeOperator :search_company OR position $likeOperator :search_position OR channel $likeOperator :search_channel OR notes $likeOperator :search_notes)";
     $searchValue = '%' . $search . '%';
     $parameters['search_company'] = $searchValue;
     $parameters['search_position'] = $searchValue;

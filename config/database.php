@@ -50,6 +50,110 @@ define('DB_PORT', environment_value('DB_PORT', '3306'));
 define('DB_NAME', environment_value('DB_NAME'));
 define('DB_USER', environment_value('DB_USER'));
 define('DB_PASS', environment_value('DB_PASS'));
+define('DB_DRIVER', strtolower(environment_value('DB_DRIVER', 'mysql')));
+
+function is_postgres_database(): bool
+{
+    return DB_DRIVER === 'pgsql' || DB_DRIVER === 'postgres' || DB_DRIVER === 'postgresql';
+}
+
+function connect_to_postgres(string $databaseUrl, array $options): PDO
+{
+    $parts = parse_url($databaseUrl);
+    if ($parts === false || empty($parts['host']) || empty($parts['user']) || !isset($parts['pass'])) {
+        throw new RuntimeException('SUPABASE_DB_URL tidak valid. Gunakan URI Session Pooler lengkap dari Supabase.');
+    }
+
+    $databaseName = isset($parts['path']) ? ltrim($parts['path'], '/') : 'postgres';
+    $port = isset($parts['port']) ? (int) $parts['port'] : 5432;
+    $dsn = 'pgsql:host=' . $parts['host'] . ';port=' . $port .
+        ';dbname=' . ($databaseName ?: 'postgres') . ';sslmode=require';
+
+    return new PDO(
+        $dsn,
+        rawurldecode($parts['user']),
+        rawurldecode($parts['pass']),
+        $options
+    );
+}
+
+function initialize_postgres_schema(PDO $pdo): void
+{
+    $pdo->exec(
+        "CREATE TABLE IF NOT EXISTS public.users (
+            id BIGSERIAL PRIMARY KEY,
+            username VARCHAR(50) NOT NULL UNIQUE,
+            password VARCHAR(255) NOT NULL,
+            created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+        )"
+    );
+    $pdo->exec(
+        "CREATE TABLE IF NOT EXISTS public.applications (
+            id BIGSERIAL PRIMARY KEY,
+            user_id BIGINT NULL REFERENCES public.users(id) ON DELETE CASCADE,
+            company VARCHAR(150) NOT NULL,
+            position VARCHAR(150) NOT NULL,
+            channel VARCHAR(100) NOT NULL,
+            status VARCHAR(50) NOT NULL DEFAULT 'Terkirim'
+                CHECK (status IN ('Terkirim','Diproses','HR Screening','Tes','Interview','Offering','Ditolak','Diterima')),
+            priority VARCHAR(20) NOT NULL DEFAULT 'Sedang'
+                CHECK (priority IN ('Tinggi','Sedang','Rendah')),
+            notes TEXT NULL,
+            follow_up_at TIMESTAMPTZ NULL,
+            interview_at TIMESTAMPTZ NULL,
+            deadline_at TIMESTAMPTZ NULL,
+            applied_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+        )"
+    );
+    $pdo->exec(
+        "CREATE TABLE IF NOT EXISTS public.application_status_history (
+            id BIGSERIAL PRIMARY KEY,
+            application_id BIGINT NOT NULL REFERENCES public.applications(id) ON DELETE CASCADE,
+            status VARCHAR(50) NOT NULL,
+            changed_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+        )"
+    );
+    $pdo->exec('CREATE INDEX IF NOT EXISTS idx_applications_user_id ON public.applications(user_id)');
+    $pdo->exec('CREATE INDEX IF NOT EXISTS idx_applications_company ON public.applications(company)');
+    $pdo->exec('CREATE INDEX IF NOT EXISTS idx_applications_status ON public.applications(status)');
+    $pdo->exec('CREATE INDEX IF NOT EXISTS idx_applications_priority ON public.applications(priority)');
+    $pdo->exec('CREATE INDEX IF NOT EXISTS idx_applications_applied_at ON public.applications(applied_at)');
+    $pdo->exec('CREATE INDEX IF NOT EXISTS idx_history_application ON public.application_status_history(application_id)');
+    $pdo->exec('CREATE INDEX IF NOT EXISTS idx_history_changed_at ON public.application_status_history(changed_at)');
+
+    $pdo->exec(
+        "CREATE OR REPLACE FUNCTION public.set_application_updated_at()
+         RETURNS TRIGGER AS $$
+         BEGIN
+             NEW.updated_at = CURRENT_TIMESTAMP;
+             RETURN NEW;
+         END;
+         $$ LANGUAGE plpgsql"
+    );
+    $pdo->exec('DROP TRIGGER IF EXISTS applications_updated_at ON public.applications');
+    $pdo->exec(
+        'CREATE TRIGGER applications_updated_at
+         BEFORE UPDATE ON public.applications
+         FOR EACH ROW EXECUTE FUNCTION public.set_application_updated_at()'
+    );
+
+    $pdo->exec('ALTER TABLE public.users ENABLE ROW LEVEL SECURITY');
+    $pdo->exec('ALTER TABLE public.applications ENABLE ROW LEVEL SECURITY');
+    $pdo->exec('ALTER TABLE public.application_status_history ENABLE ROW LEVEL SECURITY');
+
+    $initialUsername = environment_value('INITIAL_USERNAME');
+    $initialPassword = environment_value('INITIAL_PASSWORD');
+    if ($initialUsername !== '' && $initialPassword !== '') {
+        $statement = $pdo->prepare('SELECT id FROM public.users WHERE username = ? LIMIT 1');
+        $statement->execute([$initialUsername]);
+        if (!$statement->fetchColumn()) {
+            $insert = $pdo->prepare('INSERT INTO public.users (username, password) VALUES (?, ?)');
+            $insert->execute([$initialUsername, password_hash($initialPassword, PASSWORD_DEFAULT)]);
+        }
+    }
+}
 
 function database(): PDO
 {
@@ -59,17 +163,35 @@ function database(): PDO
         return $pdo;
     }
 
-    if (DB_HOST === '' || DB_NAME === '' || DB_USER === '') {
-        throw new RuntimeException(
-            'Konfigurasi database belum tersedia. Salin .env.example menjadi .env lalu isi kredensial lokal.'
-        );
-    }
-
     $options = [
         PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
         PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
         PDO::ATTR_EMULATE_PREPARES => false,
     ];
+
+    if (is_postgres_database()) {
+        if (!extension_loaded('pdo_pgsql')) {
+            throw new RuntimeException('Ekstensi pdo_pgsql belum aktif pada PHP Apache.');
+        }
+        $databaseUrl = environment_value('SUPABASE_DB_URL');
+        if ($databaseUrl === '') {
+            throw new RuntimeException('SUPABASE_DB_URL belum tersedia di file .env.');
+        }
+        try {
+            $pdo = connect_to_postgres($databaseUrl, $options);
+            $pdo->exec("SET TIME ZONE 'Asia/Jakarta'");
+            initialize_postgres_schema($pdo);
+            return $pdo;
+        } catch (PDOException $exception) {
+            throw new RuntimeException('Database Supabase tidak dapat dihubungkan: ' . $exception->getMessage());
+        }
+    }
+
+    if (DB_HOST === '' || DB_NAME === '' || DB_USER === '') {
+        throw new RuntimeException(
+            'Konfigurasi MySQL belum tersedia. Salin .env.example menjadi .env lalu isi kredensial lokal.'
+        );
+    }
 
     try {
         $server = new PDO(

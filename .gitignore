@@ -18,3 +18,5 @@ Thumbs.db
 
 # Local audit artifacts
 landing-audit*.png
+/backups/
+/.runtime/

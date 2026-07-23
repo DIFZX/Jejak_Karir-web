@@ -20,6 +20,7 @@ $dateFilter = trim((string) ($_GET['applied_date'] ?? ''));
 $page = max(1, (int) ($_GET['page'] ?? 1));
 $perPage = 10;
 $userId = (int) $_SESSION['user_id'];
+$postgres = is_postgres_database();
 $applications = [];
 $total = 0;
 $summary = ['total' => 0, 'process' => 0, 'interview' => 0, 'accepted' => 0];
@@ -30,13 +31,18 @@ $reminders = [];
 $applicationGroups = [];
 
 if (!$databaseError) {
-    $summaryStatement = $pdo->prepare(
-        "SELECT COUNT(*) total,
-        SUM(status IN ('Diproses','HR Screening','Tes','Offering')) process,
-        SUM(status = 'Interview') interview,
-        SUM(status = 'Diterima') accepted
-        FROM applications WHERE user_id = ?"
-    );
+    $summarySql = $postgres
+        ? "SELECT COUNT(*) total,
+           COUNT(*) FILTER (WHERE status IN ('Diproses','HR Screening','Tes','Offering')) process,
+           COUNT(*) FILTER (WHERE status = 'Interview') interview,
+           COUNT(*) FILTER (WHERE status = 'Diterima') accepted
+           FROM applications WHERE user_id = ?"
+        : "SELECT COUNT(*) total,
+           SUM(status IN ('Diproses','HR Screening','Tes','Offering')) process,
+           SUM(status = 'Interview') interview,
+           SUM(status = 'Diterima') accepted
+           FROM applications WHERE user_id = ?";
+    $summaryStatement = $pdo->prepare($summarySql);
     $summaryStatement->execute([$userId]);
     $summaryRow = $summaryStatement->fetch();
     $summary = [
@@ -49,7 +55,8 @@ if (!$databaseError) {
     $conditions = ['user_id = :user_id'];
     $parameters = ['user_id' => $userId];
     if ($search !== '') {
-        $conditions[] = '(company LIKE :search_company OR position LIKE :search_position OR channel LIKE :search_channel OR notes LIKE :search_notes)';
+        $likeOperator = $postgres ? 'ILIKE' : 'LIKE';
+        $conditions[] = "(company $likeOperator :search_company OR position $likeOperator :search_position OR channel $likeOperator :search_channel OR notes $likeOperator :search_notes)";
         $searchValue = '%' . $search . '%';
         $parameters['search_company'] = $searchValue;
         $parameters['search_position'] = $searchValue;
@@ -125,12 +132,16 @@ if (!$databaseError) {
         $applicationGroups[$dateKey]['items'][] = $application;
     }
 
-    $monthlyStatement = $pdo->prepare(
-        "SELECT DATE_FORMAT(applied_at, '%Y-%m') month_key, COUNT(*) total
-         FROM applications
-         WHERE user_id = ? AND applied_at >= DATE_SUB(CURDATE(), INTERVAL 5 MONTH)
-         GROUP BY month_key ORDER BY month_key"
-    );
+    $monthlySql = $postgres
+        ? "SELECT TO_CHAR(applied_at, 'YYYY-MM') month_key, COUNT(*) total
+           FROM applications
+           WHERE user_id = ? AND applied_at >= CURRENT_DATE - INTERVAL '5 months'
+           GROUP BY TO_CHAR(applied_at, 'YYYY-MM') ORDER BY month_key"
+        : "SELECT DATE_FORMAT(applied_at, '%Y-%m') month_key, COUNT(*) total
+           FROM applications
+           WHERE user_id = ? AND applied_at >= DATE_SUB(CURDATE(), INTERVAL 5 MONTH)
+           GROUP BY month_key ORDER BY month_key";
+    $monthlyStatement = $pdo->prepare($monthlySql);
     $monthlyStatement->execute([$userId]);
     $monthlyRows = [];
     foreach ($monthlyStatement->fetchAll() as $row) {
@@ -147,12 +158,16 @@ if (!$databaseError) {
         ];
     }
 
-    $dailyStatement = $pdo->prepare(
-        "SELECT DATE(applied_at) day_key, COUNT(*) total
-         FROM applications
-         WHERE user_id = ? AND applied_at >= DATE_SUB(CURDATE(), INTERVAL 6 DAY)
-         GROUP BY day_key ORDER BY day_key"
-    );
+    $dailySql = $postgres
+        ? "SELECT DATE(applied_at) day_key, COUNT(*) total
+           FROM applications
+           WHERE user_id = ? AND applied_at >= CURRENT_DATE - INTERVAL '6 days'
+           GROUP BY DATE(applied_at) ORDER BY day_key"
+        : "SELECT DATE(applied_at) day_key, COUNT(*) total
+           FROM applications
+           WHERE user_id = ? AND applied_at >= DATE_SUB(CURDATE(), INTERVAL 6 DAY)
+           GROUP BY day_key ORDER BY day_key";
+    $dailyStatement = $pdo->prepare($dailySql);
     $dailyStatement->execute([$userId]);
     $dailyRows = [];
     foreach ($dailyStatement->fetchAll() as $row) {

@@ -92,16 +92,21 @@ if ($errors) {
 
 if ($action === 'create') {
     $pdo->beginTransaction();
-    $statement = $pdo->prepare(
+    $insertSql =
         'INSERT INTO applications
          (user_id, company, position, channel, status, priority, notes, follow_up_at, interview_at, deadline_at, applied_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())'
-    );
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())';
+    if (is_postgres_database()) {
+        $insertSql .= ' RETURNING id';
+    }
+    $statement = $pdo->prepare($insertSql);
     $statement->execute([
         $userId, $company, $position, $channel, $status, $priority, $notes ?: null,
         $followUpAt, $interviewAt, $deadlineAt,
     ]);
-    $applicationId = (int) $pdo->lastInsertId();
+    $applicationId = is_postgres_database()
+        ? (int) $statement->fetchColumn()
+        : (int) $pdo->lastInsertId();
     $history = $pdo->prepare(
         'INSERT INTO application_status_history (application_id, status, changed_at) VALUES (?, ?, NOW())'
     );
